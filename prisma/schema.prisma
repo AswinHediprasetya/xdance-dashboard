@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Upload {
+  id             String   @id @default(cuid())
+  fileName1      String
+  fileName2      String
+  status         String   @default("pending")
+  errorMessage   String?
+  rawData1       String
+  rawData2       String
+  normalizedData String?
+  metrics        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
