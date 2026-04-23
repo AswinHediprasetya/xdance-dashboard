@@ -1,16 +1,10 @@
 'use client';
 
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingDown } from 'lucide-react';
+import { useChartPalette } from '@/hooks/useChartPalette';
 import type { ChurnDataPoint } from '@/types/metrics';
 
 interface ChurnChartProps {
@@ -20,42 +14,118 @@ interface ChurnChartProps {
 }
 
 export function ChurnChart({ data, churnRate, retentionRate }: ChurnChartProps) {
+  const p = useChartPalette();
+
+  const cardStyle = {
+    background: 'var(--card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    boxShadow: '0 1px 0 rgba(15,17,33,.04)',
+    overflow: 'hidden',
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Churn & Growth Analysis</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-6 text-sm">
-          <div>
-            <span className="text-muted-foreground">Retention Rate</span>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">
-              {retentionRate.toFixed(1)}%
-            </p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Churn Rate</span>
-            <p className="text-xl font-bold text-red-500">{churnRate.toFixed(1)}%</p>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="period" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+    <div style={cardStyle}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border)' }}
+      >
+        <h3
+          className="flex items-center gap-2 m-0"
+          style={{ fontSize: 13.5, fontWeight: 550, letterSpacing: '-0.005em', color: 'var(--fg-strong)' }}
+        >
+          <TrendingDown style={{ width: 13, height: 13 }} />
+          Member flow
+        </h3>
+        <span
+          className="tabular-nums"
+          style={{ fontSize: 12, color: 'var(--fg-faint)', fontFamily: 'var(--font-mono)' }}
+        >
+          Retention {(retentionRate * 100).toFixed(1)}%
+        </span>
+      </div>
+
+      <div style={{ padding: '20px 22px 22px' }}>
+        <ResponsiveContainer width="100%" height={240}>
+          <ComposedChart data={data} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+            <defs>
+              <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={p.accent} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={p.accent} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="2 4" stroke={p.hair} />
+            <XAxis
+              dataKey="period"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: p.fgFaint }}
+              dy={6}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 11, fill: p.fgFaint }}
+              width={28}
+            />
             <Tooltip
+              cursor={{ stroke: p.hair, strokeDasharray: '3 3' }}
               contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
+                background: p.bgElev,
+                border: `1px solid ${p.hair}`,
+                borderRadius: 10,
+                padding: '8px 10px',
+                fontSize: 12,
               }}
             />
-            <Legend />
-            <Bar dataKey="newMembers" fill="#22c55e" radius={[4, 4, 0, 0]} name="New Members" />
-            <Bar dataKey="churned" fill="#ef4444" radius={[4, 4, 0, 0]} name="Churned" />
-          </BarChart>
+            <Area
+              type="monotone"
+              dataKey="net"
+              name="Net"
+              stroke={p.accent}
+              strokeWidth={2}
+              fill="url(#netGrad)"
+              dot={false}
+              animationDuration={800}
+            />
+            <Line
+              type="monotone"
+              dataKey="newMembers"
+              name="New"
+              stroke={p.fgStrong}
+              strokeWidth={1.5}
+              dot={{ r: 2.5, fill: p.fgStrong }}
+              animationDuration={800}
+            />
+            <Line
+              type="monotone"
+              dataKey="churned"
+              name="Churned"
+              stroke={p.fgFaint}
+              strokeWidth={1.25}
+              strokeDasharray="3 3"
+              dot={{ r: 2, fill: p.fgFaint }}
+              animationDuration={800}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+
+        {/* Legend */}
+        <div className="flex gap-4 mt-3.5 text-[12px]" style={{ color: 'var(--muted-foreground)' }}>
+          <span className="flex items-center gap-1.5">
+            <span className="rounded-sm" style={{ width: 10, height: 10, background: p.accent }} />
+            Net
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span style={{ width: 10, height: 2, background: p.fgStrong }} />
+            New
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span style={{ width: 10, height: 0, borderTop: `1.5px dashed ${p.fgFaint}` }} />
+            Churned
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

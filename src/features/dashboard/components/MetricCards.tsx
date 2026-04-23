@@ -1,70 +1,102 @@
 'use client';
 
-import { Users, UserPlus, TrendingDown, DollarSign, Activity, Percent } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency, formatPercent } from '@/lib/utils';
+import { UserPlus, TrendingDown, DollarSign, Activity } from 'lucide-react';
+import { Delta } from '@/components/shared/Delta';
 import type { KpiMetrics } from '@/types/metrics';
-
-interface MetricCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  description?: string;
-  trend?: 'up' | 'down' | 'neutral';
-}
-
-function MetricCard({ title, value, icon, description }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className="text-muted-foreground">{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
-      </CardContent>
-    </Card>
-  );
-}
 
 interface MetricCardsProps {
   kpis: KpiMetrics;
 }
 
+const cardStyle = {
+  background: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  boxShadow: '0 1px 0 rgba(15,17,33,.04)',
+  overflow: 'hidden',
+};
+
 export function MetricCards({ kpis }: MetricCardsProps) {
+  const items = [
+    {
+      label: 'New this period',
+      icon: UserPlus,
+      value: kpis.newMembersThisPeriod.toLocaleString(),
+      delta: null as number | null,
+      sub: 'joined',
+      invertColor: false,
+    },
+    {
+      label: 'Churn rate',
+      icon: TrendingDown,
+      value: (kpis.churnRate * 100).toFixed(2) + '%',
+      delta: null as number | null,
+      sub: `${kpis.churnedThisPeriod} cancelled`,
+      invertColor: true,
+    },
+    {
+      label: 'Avg revenue / mbr',
+      icon: DollarSign,
+      value: kpis.averageRevenuePerMember != null
+        ? '€' + Math.round(kpis.averageRevenuePerMember).toLocaleString()
+        : 'N/A',
+      delta: null as number | null,
+      sub: kpis.totalRevenue != null
+        ? '€' + Math.round(kpis.totalRevenue).toLocaleString() + ' total'
+        : 'No fee data',
+      invertColor: false,
+    },
+    {
+      label: 'Total check-ins',
+      icon: Activity,
+      value: kpis.totalCheckIns.toLocaleString(),
+      delta: null as number | null,
+      sub: 'across classes',
+      invertColor: false,
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
-      <MetricCard
-        title="Active Members"
-        value={kpis.totalActiveMembers.toString()}
-        icon={<Users className="h-4 w-4" />}
-        description="Currently active memberships"
-      />
-      <MetricCard
-        title="New This Period"
-        value={kpis.newMembersThisPeriod.toString()}
-        icon={<UserPlus className="h-4 w-4" />}
-        description="Joined in the last 30 days"
-      />
-      <MetricCard
-        title="Churn Rate"
-        value={formatPercent(kpis.churnRate)}
-        icon={<TrendingDown className="h-4 w-4" />}
-        description={`${kpis.churnedThisPeriod} members cancelled`}
-      />
-      <MetricCard
-        title="Avg Revenue / Member"
-        value={kpis.averageRevenuePerMember != null ? formatCurrency(kpis.averageRevenuePerMember) : 'N/A'}
-        icon={<DollarSign className="h-4 w-4" />}
-        description={kpis.totalRevenue != null ? `Total: ${formatCurrency(kpis.totalRevenue)}` : 'No fee data'}
-      />
-      <MetricCard
-        title="Total Check-ins"
-        value={kpis.totalCheckIns.toString()}
-        icon={<Activity className="h-4 w-4" />}
-        description="Across all classes"
-      />
+    <div style={{ ...cardStyle, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      {items.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={item.label}
+            className="flex flex-col gap-2 transition-colors duration-200"
+            style={{
+              padding: '22px 24px',
+              borderRight: i < items.length - 1 ? '1px solid var(--border)' : 'none',
+              cursor: 'default',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <div
+              className="flex items-center gap-[7px] text-[12.5px] font-medium"
+              style={{ color: 'var(--muted-foreground)', letterSpacing: '-0.005em' }}
+            >
+              <Icon style={{ width: 13, height: 13, color: 'var(--fg-faint)' }} />
+              {item.label}
+            </div>
+            <div
+              className="tabular-nums leading-none"
+              style={{ fontSize: 30, fontWeight: 550, letterSpacing: '-0.03em', color: 'var(--fg-strong)' }}
+            >
+              {item.value}
+            </div>
+            <div
+              className="flex items-center gap-2.5 text-[12px]"
+              style={{ color: 'var(--fg-faint)', letterSpacing: '-0.005em' }}
+            >
+              {item.delta != null && (
+                <Delta value={item.delta} unit="%" invertColor={item.invertColor} />
+              )}
+              <span style={{ opacity: 0.7 }}>{item.sub}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

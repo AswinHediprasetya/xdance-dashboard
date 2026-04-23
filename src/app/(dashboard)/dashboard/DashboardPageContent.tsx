@@ -1,7 +1,8 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useDashboardData, useUploadList } from '@/features/dashboard/hooks/useDashboardData';
+import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
+import { FeaturedKpi } from '@/features/dashboard/components/FeaturedKpi';
 import { MetricCards } from '@/features/dashboard/components/MetricCards';
 import { MembershipChart } from '@/features/dashboard/components/MembershipChart';
 import { AttendanceChart } from '@/features/dashboard/components/AttendanceChart';
@@ -9,33 +10,28 @@ import { RevenueChart } from '@/features/dashboard/components/RevenueChart';
 import { ChurnChart } from '@/features/dashboard/components/ChurnChart';
 import { ClassPerformance } from '@/features/dashboard/components/ClassPerformance';
 import { AttendanceHeatmap } from '@/features/dashboard/components/AttendanceHeatmap';
-import { DashboardFilters } from '@/features/dashboard/components/DashboardFilters';
+import { ActivityFeed } from '@/features/dashboard/components/ActivityFeed';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { LayoutDashboard } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
-import type { CanonicalMember, CanonicalAttendance } from '@/types/member';
 import { ExportButton } from '@/components/shared/ExportButton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LayoutDashboard, Filter, RefreshCw, Plus } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import type { CanonicalMember } from '@/types/member';
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6 p-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-xl" />
-        ))}
+    <div style={{ padding: '40px 40px 80px' }} className="space-y-[18px]">
+      <div style={{ height: 40 }} className="w-96 rounded-xl">
+        <Skeleton className="h-10 w-96 rounded-xl" />
       </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-80 rounded-xl" />
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 18 }}>
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
+      </div>
+      <Skeleton className="h-28 rounded-2xl" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 18 }}>
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
       </div>
     </div>
   );
@@ -43,9 +39,6 @@ function DashboardSkeleton() {
 
 function DashboardContent({ uploadId }: { uploadId: string }) {
   const { data, isLoading, isError, error, refetch } = useDashboardData(uploadId);
-  const searchParams = useSearchParams();
-  const membershipTypeFilter = searchParams.get('membershipType');
-  const danceStyleFilter = searchParams.get('danceStyle');
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -76,80 +69,159 @@ function DashboardContent({ uploadId }: { uploadId: string }) {
   }
 
   const { metrics, normalizedData } = data;
-  const membershipTypes = [...new Set(normalizedData.members.map((m: CanonicalMember) => m.membershipType))];
-  const danceStyles = [
-    ...new Set([
-      ...normalizedData.members.map((m: CanonicalMember) => m.danceStyle).filter(Boolean),
-      ...normalizedData.attendance.map((a: CanonicalAttendance) => a.danceStyle).filter(Boolean),
-    ]),
-  ] as string[];
+  const activeCount = metrics.kpis.totalActiveMembers;
+  const tierCount = metrics.membershipTypeDistribution.length;
+  const revDelta = metrics.kpis.totalRevenue != null ? '' : '';
+
+  const btnStyle = {
+    display: 'inline-flex', alignItems: 'center', gap: 7,
+    padding: '6px 12px',
+    borderRadius: 9,
+    fontSize: 13, fontWeight: 500, letterSpacing: '-0.005em',
+    border: '1px solid var(--border)',
+    background: 'var(--card)',
+    color: 'var(--fg-strong)',
+    cursor: 'pointer',
+    boxShadow: '0 1px 0 rgba(15,17,33,.04)',
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div style={{ padding: '40px 40px 80px', maxWidth: 1520, margin: '0 auto' }}>
+
+      {/* Hero head */}
+      <div
+        className="flex flex-wrap items-end justify-between gap-6"
+        style={{ marginBottom: 28 }}
+      >
         <div>
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {data.fileName1} + {data.fileName2} · {formatDate(data.createdAt)}
+          <div
+            className="flex items-center gap-2 text-[13.5px] font-medium mb-1.5"
+            style={{ color: 'var(--muted-foreground)', letterSpacing: '-0.005em' }}
+          >
+            <span
+              className="rounded-full"
+              style={{ width: 6, height: 6, background: 'var(--pos)', flexShrink: 0 }}
+            />
+            Live · {data.fileName1}
+          </div>
+          <h1
+            className="m-0 leading-[1.05]"
+            style={{
+              fontSize: 40, fontWeight: 590, letterSpacing: '-0.035em',
+              color: 'var(--fg-strong)', maxWidth: 760,
+            }}
+          >
+            A{' '}
+            <em style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--accent-ink)', letterSpacing: '-0.01em' }}>
+              sharper
+            </em>
+            {' '}look at your studio.
+          </h1>
+          <p
+            style={{
+              fontSize: 15, color: 'var(--muted-foreground)', marginTop: 12,
+              maxWidth: 640, lineHeight: 1.55, letterSpacing: '-0.005em',
+            }}
+          >
+            {activeCount} active members across {tierCount} membership tiers.
+            Uploaded {formatDate(data.createdAt)}.
           </p>
         </div>
+
         <div className="flex items-center gap-2">
-          <DashboardFilters
-            membershipTypes={membershipTypes as string[]}
-            danceStyles={danceStyles}
-          />
-          <ExportButton uploadId={uploadId} members={normalizedData.members} metrics={metrics} />
+          <button style={btnStyle}>
+            <Filter style={{ width: 14, height: 14 }} />
+            Filters
+          </button>
+          <button style={btnStyle} onClick={() => refetch()}>
+            <RefreshCw style={{ width: 14, height: 14 }} />
+            Refresh
+          </button>
+          <ExportButton uploadId={uploadId} members={normalizedData.members as CanonicalMember[]} metrics={metrics} />
+          <a
+            href="/"
+            style={{
+              ...btnStyle,
+              background: 'var(--fg-strong)',
+              color: 'var(--background)',
+              borderColor: 'var(--fg-strong)',
+              textDecoration: 'none',
+            }}
+          >
+            <Plus style={{ width: 14, height: 14 }} />
+            New upload
+          </a>
         </div>
       </div>
 
+      {/* Hero grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 18, marginBottom: 18 }}>
+        <FeaturedKpi kpis={metrics.kpis} churnData={metrics.churnData} />
+        <RevenueChart data={metrics.revenueByType} />
+      </div>
+
+      {/* KPI strip */}
       <MetricCards kpis={metrics.kpis} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <MembershipChart data={metrics.membershipTypeDistribution} />
+      {/* Row: Attendance + Churn */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 18, marginTop: 18 }}>
         <AttendanceChart data={metrics.attendanceByStyle} />
-        <RevenueChart data={metrics.revenueByType} />
-        <ChurnChart
-          data={metrics.churnData}
-          churnRate={metrics.kpis.churnRate}
-          retentionRate={metrics.kpis.retentionRate}
-        />
-        <AttendanceHeatmap data={metrics.attendanceByDay} />
-        <ClassPerformance data={metrics.topClasses} />
+        <ChurnChart data={metrics.churnData} churnRate={metrics.kpis.churnRate} retentionRate={metrics.kpis.retentionRate} />
       </div>
-    </div>
-  );
-}
 
-function UploadSelector() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentUploadId = searchParams.get('uploadId') ?? '';
-  const { data, isLoading } = useUploadList();
+      {/* Row: Top classes + Heatmap */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 18, marginTop: 18 }}>
+        <ClassPerformance data={metrics.topClasses} />
+        <AttendanceHeatmap data={metrics.attendanceByDay} />
+      </div>
 
-  const completedUploads = data?.data.filter((u: any) => u.status === 'completed') ?? [];
+      {/* Row: Activity + Membership mix */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginTop: 18 }}>
+        {/* Activity feed */}
+        <div
+          style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            boxShadow: '0 1px 0 rgba(15,17,33,.04)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            className="flex items-center justify-between"
+            style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--border)' }}
+          >
+            <h3
+              className="m-0"
+              style={{ fontSize: 13.5, fontWeight: 550, letterSpacing: '-0.005em', color: 'var(--fg-strong)' }}
+            >
+              Recent activity
+            </h3>
+            <span
+              className="text-[12px] cursor-pointer"
+              style={{ color: 'var(--fg-faint)' }}
+            >
+              View all →
+            </span>
+          </div>
+          <div style={{ padding: '8px 22px 16px' }}>
+            <ActivityFeed members={normalizedData.members as CanonicalMember[]} />
+          </div>
+        </div>
 
-  return (
-    <div className="w-52">
-      <Select
-        value={currentUploadId}
-        onValueChange={(id) => {
-          if (!id) return;
-          const params = new URLSearchParams(searchParams.toString());
-          params.set('uploadId', id);
-          router.push(`?${params.toString()}`);
-        }}
+        <MembershipChart data={metrics.membershipTypeDistribution} />
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex justify-between text-[12px] mt-8 pt-6"
+        style={{ borderTop: '1px solid var(--border)', color: 'var(--fg-faint)' }}
       >
-        <SelectTrigger>
-          <SelectValue placeholder={isLoading ? 'Loading…' : 'Select upload'} />
-        </SelectTrigger>
-        <SelectContent>
-          {completedUploads.map((u: any) => (
-            <SelectItem key={u.id} value={u.id}>
-              {formatDate(u.createdAt)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <span>X-Dance Studio · Amsterdam, NL</span>
+        <span style={{ fontFamily: 'var(--font-mono)' }}>
+          Generated {formatDate(data.createdAt)}
+        </span>
+      </div>
     </div>
   );
 }
