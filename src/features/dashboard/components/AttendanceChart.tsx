@@ -20,7 +20,9 @@ function compactNum(n: number) {
 export function AttendanceChart({ data }: AttendanceChartProps) {
   const [focus, setFocus] = useState<string | null>(null);
   const p = useChartPalette();
-  const chartData = focus ? data.filter(d => d.style === focus) : data.slice(0, 8);
+  // Rename 'style' → 'name' to avoid React treating it as a DOM style prop inside Recharts
+  const chartData = (focus ? data.filter(d => d.style === focus) : data.slice(0, 8))
+    .map(d => ({ name: d.style, checkIns: d.checkIns }));
   const total = data.reduce((s, d) => s + d.checkIns, 0);
 
   const cardStyle = {
@@ -94,7 +96,7 @@ export function AttendanceChart({ data }: AttendanceChartProps) {
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="2 4" stroke={p.hair} />
             <XAxis
-              dataKey="style"
+              dataKey="name"
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: p.fgFaint }}
