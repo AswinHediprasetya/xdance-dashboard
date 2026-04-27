@@ -68,12 +68,44 @@ function applyMappings(
   });
 }
 
+// Column name patterns that indicate personal/sensitive data
+const PERSONAL_COL_PATTERNS = [
+  /naam|name|voornaam|achternaam|familienaam/i,
+  /e[\s-]?mail/i,
+  /telefoon|mobiel|tel\.?|phone/i,
+  /geboortedatum|geboorte|birth|dob/i,
+  /adres|address|straat|postcode|street|city|stad/i,
+  /bsn|sofi|passport|iban|rekeningnr/i,
+];
+
+function sanitizeSampleRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  if (rows.length === 0) return rows;
+  const headers = Object.keys(rows[0]);
+  const personalCols = new Set(
+    headers.filter(h => PERSONAL_COL_PATTERNS.some(p => p.test(h)))
+  );
+  return rows.map((row, i) => {
+    const out: Record<string, unknown> = { ...row };
+    for (const col of personalCols) {
+      const val = row[col];
+      if (typeof val === 'string' && val.includes('@')) {
+        out[col] = `member${i + 1}@example.com`;
+      } else {
+        out[col] = `Member ${i + 1}`;
+      }
+    }
+    return out;
+  });
+}
+
 export async function normalizeMembershipFile(
   sheet: ParsedSheet,
   fileContext: string
 ): Promise<{ mappings: ColumnMapping[]; rows: Record<string, unknown>[] }> {
-  const sampleRows = sheet.rows.slice(0, 5);
-  const mappings = await normalizeSchema(sheet.headers, sampleRows, fileContext);
+  const rawSample = sheet.rows.slice(0, 5);
+  // Strip personal data before sending to external AI
+  const safeSample = sanitizeSampleRows(rawSample);
+  const mappings = await normalizeSchema(sheet.headers, safeSample, fileContext);
   const rows = applyMappings(sheet.rows, mappings, fileContext);
   return { mappings, rows };
 }

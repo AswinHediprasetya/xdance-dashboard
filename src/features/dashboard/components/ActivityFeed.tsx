@@ -23,6 +23,14 @@ const KIND_LABEL: Record<ActivityKind, string> = {
   checkin: 'Checked in',
 };
 
+function anonymizeName(first: string, last: string): string {
+  const f = first?.trim() || '';
+  const l = last?.trim() || '';
+  if (!f && !l) return 'Anonymous';
+  const lastInitial = l ? ` ${l[0].toUpperCase()}.` : '';
+  return `${f}${lastInitial}`;
+}
+
 function formatShortDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   try {
@@ -59,7 +67,7 @@ export function ActivityFeed({ members }: ActivityFeedProps) {
 
       return {
         kind,
-        who: `${m.firstName} ${m.lastName}`,
+        who: anonymizeName(m.firstName, m.lastName),
         meta,
         date: m.startDate,
       };
