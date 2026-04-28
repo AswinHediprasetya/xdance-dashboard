@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+
+const PII_KEYS = new Set(['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'memberId', 'notes', 'outstandingBalance']);
+function stripPii(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[k] = PII_KEYS.has(k) ? '●●●' : v;
+  }
+  return out;
+}
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '@/lib/prisma';
@@ -88,8 +97,8 @@ export async function POST() {
         attendanceCount: attendance.length,
         columnMappings: normalizedData.columnMappings,
         sampleRows: {
-          file1: norm1.rows.slice(0, 5),
-          file2: norm2.rows.slice(0, 5),
+          file1: norm1.rows.slice(0, 5).map(stripPii),
+          file2: norm2.rows.slice(0, 5).map(stripPii),
         },
         fileNames: {
           file1: FILE1,

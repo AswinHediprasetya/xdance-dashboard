@@ -15,6 +15,25 @@ import {
 import { cn } from '@/lib/utils';
 import type { ColumnMapping } from '@/lib/claude';
 
+// Fields that contain personal data — masked in the preview per GDPR Art. 5
+const PII_FIELDS = new Set([
+  'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'memberId',
+  'outstandingBalance', 'notes', 'memberName',
+]);
+
+function maskField(field: string, val: unknown): React.ReactNode {
+  if (val == null || val === '') return <span className="text-muted-foreground/50">—</span>;
+  if (!PII_FIELDS.has(field)) return String(val);
+  if (field === 'email') return <span className="text-muted-foreground/60 italic">●●●@●●●.●●●</span>;
+  if (field === 'phone') return <span className="text-muted-foreground/60 italic">+●● ●●● ●●●●</span>;
+  if (field === 'dateOfBirth') return <span className="text-muted-foreground/60 italic">●●●●-●●-●●</span>;
+  if (field === 'outstandingBalance') return <span className="text-muted-foreground/60 italic">€●●●</span>;
+  if (field === 'memberId') return <span className="text-muted-foreground/60 italic">ID-●●●●</span>;
+  // Name fields: show first initial only
+  const str = String(val).trim();
+  return <span className="text-muted-foreground/70 italic">{str[0] ?? '●'}●●●</span>;
+}
+
 interface ConfidenceLevel {
   label: string;
   badgeClass: string;
@@ -184,6 +203,7 @@ export function ColumnMappingPreview({ mappings, fileName, sampleRows }: ColumnM
         <div className="space-y-2 pt-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Data preview — first {sampleRows.length} rows after normalization
+            <span className="ml-2 normal-case font-normal text-muted-foreground/70">(sensitive fields masked · GDPR)</span>
           </p>
           <div className="rounded-lg border overflow-x-auto">
             <Table>
@@ -201,9 +221,10 @@ export function ColumnMappingPreview({ mappings, fileName, sampleRows }: ColumnM
                   <TableRow key={i}>
                     {mapped.map((m) => {
                       const val = m.canonicalField ? row[m.canonicalField] : undefined;
+                      const masked = maskField(m.canonicalField ?? '', val);
                       return (
                         <TableCell key={m.canonicalField} className="font-mono text-xs max-w-[160px] truncate py-2">
-                          {val != null && val !== '' ? String(val) : <span className="text-muted-foreground/50">—</span>}
+                          {masked}
                         </TableCell>
                       );
                     })}
