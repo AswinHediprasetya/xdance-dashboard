@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Upload, History, Settings,
-  Users, Music,
+  BarChart2,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { TopBar } from '@/components/shared/TopBar';
 
 const NAV_WORKSPACE = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/lessons', icon: BarChart2, label: 'Lesson Analysis' },
   { href: '/', icon: Upload, label: 'Upload' },
   { href: '/uploads', icon: History, label: 'History' },
 ];
