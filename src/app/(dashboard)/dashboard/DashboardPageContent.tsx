@@ -228,7 +228,17 @@ function DashboardContent({ uploadId }: { uploadId: string }) {
 
 export function DashboardPageContent() {
   const searchParams = useSearchParams();
-  const uploadId = searchParams.get('uploadId');
+  const rawId = searchParams.get('uploadId');
+
+  // Persist last-used uploadId so navigating away and back doesn't blank the dashboard
+  const uploadId = (() => {
+    if (typeof window === 'undefined') return rawId;
+    if (rawId) {
+      localStorage.setItem('xdance_last_upload', rawId);
+      return rawId;
+    }
+    return localStorage.getItem('xdance_last_upload');
+  })();
 
   if (!uploadId) {
     return (

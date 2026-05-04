@@ -213,7 +213,7 @@ export function parseLessonFile(): LessonSummary {
     avgStudents: classes.length > 0 ? classes.reduce((s, c) => s + c.students, 0) / classes.length : 0,
     totalTeacherCost: classes.reduce((s, c) => s + c.teacherExpense, 0),
     totalRentCost: classes.reduce((s, c) => s + c.rent, 0),
-    dataDate: 'April 2026',
+    dataDate: 'April 2026 (Lesanalyse)',
   };
 
   return { classes, locations, teachers, days, kpi };
